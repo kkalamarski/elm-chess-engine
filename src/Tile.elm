@@ -1,130 +1,152 @@
 module Tile exposing (..)
 
 import Array
+import Css
 import FEN exposing (..)
-import Html exposing (Html, div, span, text)
-import Html.Attributes
-import Html.Events
-import Model exposing (Msg(..))
+import Html.Styled as Html exposing (..)
+import Html.Styled.Attributes as Attr
+import Html.Styled.Events exposing (..)
+import Model exposing (GameState, Msg(..), Piece(..), Player(..), Square(..))
 import Styles exposing (..)
-import Model exposing (Model)
+import Tailwind.Utilities as Tw
 
 
-styledRankText : Html.Attribute msg -> List (Html msg) -> Html msg
+styledRankText : Css.Style -> List (Html msg) -> Html msg
 styledRankText shouldDisplay children =
     span
-        [ position "absolute"
-        , padding "5px"
-        , top "0"
-        , opacity "0.5"
-        , shouldDisplay
+        [ Attr.css
+            [ Tw.absolute
+            , Tw.p_1
+            , Tw.top_0
+            , Tw.opacity_50
+            , shouldDisplay
+            ]
         ]
         children
 
 
-styledFileText : Html.Attribute msg -> List (Html msg) -> Html msg
+styledFileText : Css.Style -> List (Html msg) -> Html msg
 styledFileText shouldDisplay children =
-    span
-        [ position "absolute"
-        , padding "5px"
-        , bottom "0"
-        , right "0"
-        , opacity "0.5"
-        , shouldDisplay
-        ]
-        children
+    children
+        |> span
+            [ Attr.css
+                [ Tw.absolute
+                , Tw.p_1
+                , Tw.right_0
+                , Tw.bottom_0
+                , Tw.opacity_50
+                , shouldDisplay
+                ]
+            ]
 
 
-styledTile : String -> List (Html msg) -> Html msg
-styledTile squareColor children =
+styledTile : Css.Style -> Int -> List (Html Msg) -> Html Msg
+styledTile squareColor index children =
     div
-        [ height "100px"
-        , width "100px"
-        , display "grid"
-        , background squareColor
-        , alignItems "center"
-        , justifyContent "center"
-        , position "relative"
+        [ Attr.css
+            [ Css.height (Css.px 100)
+            , Css.width (Css.px 100)
+            , Tw.grid
+            , Tw.items_center
+            , Tw.justify_center
+            , Tw.relative
+            , Tw.cursor_pointer
+            , squareColor
+            ]
+        , onClick (Select index)
         ]
         children
 
 
-styledIcon : Int -> String -> Html Msg
-styledIcon i t =
+styledIcon : Square -> Html Msg
+styledIcon t =
     let
         ( x, y ) =
             case t of
-                "K" ->
+                Present White King ->
                     ( 0, 0 )
 
-                "Q" ->
+                Present White Queen ->
                     ( -100, 0 )
 
-                "B" ->
+                Present White Bishop ->
                     ( -200, 0 )
 
-                "N" ->
+                Present White Knight ->
                     ( -300, 0 )
 
-                "R" ->
+                Present White Rook ->
                     ( -400, 0 )
 
-                "P" ->
+                Present White Pawn ->
                     ( -500, 0 )
 
-                "k" ->
+                Present Black King ->
                     ( 0, -100 )
 
-                "q" ->
+                Present Black Queen ->
                     ( -100, -100 )
 
-                "b" ->
+                Present Black Bishop ->
                     ( -200, -100 )
 
-                "n" ->
+                Present Black Knight ->
                     ( -300, -100 )
 
-                "r" ->
+                Present Black Rook ->
                     ( -400, -100 )
 
-                "p" ->
+                Present Black Pawn ->
                     ( -500, -100 )
 
                 _ ->
                     ( 1000, 1000 )
 
         shouldDisplay =
-            if t == "" then
-                "none"
+            case t of
+                EmptySquare ->
+                    Tw.hidden
 
-            else
-                "block"
+                _ ->
+                    Tw.block
     in
     div
-        [ background (String.concat [ "url(pieces.png) no-repeat ", String.fromInt x, "px ", String.fromInt y, "px" ])
-        , display shouldDisplay
-        , width "100px"
-        , height "100px"
-        , transform "scale(0.9)"
-        , cursor "pointer"
-        , Html.Attributes.draggable "true"
-        , Html.Events.onClick (Select (Just i))
+        [ Attr.css
+            [ shouldDisplay
+            , Css.height (Css.px 100)
+            , Css.width (Css.px 100)
+            , Css.transform (Css.scale 0.9)
+            ]
+        , Attr.css
+            [ Css.backgroundImage (Css.url "pieces.png")
+            , Css.backgroundPosition2 (Css.px x) (Css.px y)
+            ]
+        , Attr.draggable "true"
         ]
         []
 
 
-tile : Model -> Int -> String -> Html Msg
-tile model index value =
+tile : GameState -> Int -> Square -> Html Msg
+tile gameState index value =
     let
         isLightSquare =
             modBy 2 (index + floor (toFloat index / 8)) == 0
 
+        isLegalMove =
+            List.member index gameState.legalMoves
+
         squareColor =
-            if isLightSquare then
-                "#E7F2F8"
+            if isSelected then
+                Tw.bg_red_600
+
+            else if isLegalMove then
+                Tw.bg_green_600
+
+            else if isLightSquare then
+                Tw.bg_blue_200
 
             else
-                "#74BDCB"
+                Tw.bg_blue_500
 
         file =
             getChessBoardFile index
@@ -134,32 +156,34 @@ tile model index value =
 
         shouldDisplayRank =
             if file == "a" then
-                display "block"
+                Tw.block
 
             else
-                display "none"
+                Tw.hidden
 
         shouldDisplayFile =
             if rank == "1" then
-                display "block"
+                Tw.block
 
             else
-                display "none"
+                Tw.hidden
+
+        isSelected =
+            case gameState.selected of
+                Just i ->
+                    i == index
+
+                Nothing ->
+                    False
     in
     styledTile squareColor
+        index
         [ styledFileText shouldDisplayFile [ text file ]
         , styledRankText shouldDisplayRank [ text rank ]
+        , span [ Attr.css [ Tw.absolute, Tw.right_0_dot_5, Tw.top_0_dot_5, Tw.opacity_10 ] ] [ text (String.fromInt index) ]
         , span
-            [ color
-                (if isLightSquare then
-                    "black"
-
-                 else
-                    "white"
-                )
-            , fontSize "28px"
-            ]
-            [ styledIcon index value ]
+            []
+            [ styledIcon value ]
         ]
 
 

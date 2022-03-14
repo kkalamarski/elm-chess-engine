@@ -4,31 +4,12 @@ import Array
 import Model exposing (..)
 
 
-type Player
-    = White
-    | Black
-
-
-type Piece
-    = Pawn
-    | Queen
-    | King
-    | Knight
-    | Bishop
-    | Rook
-
-
-type Square
-    = Present Player Piece
-    | Empty
-
-
 startingFEN : String
 startingFEN =
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 
-parsePosition : Maybe String -> Maybe (List String)
+parsePosition : Maybe String -> Maybe (List Square)
 parsePosition pos =
     let
         m =
@@ -55,11 +36,12 @@ parsePosition pos =
                                 [ x ]
                     )
                 |> List.concat
+                |> List.map lettersToSquare
     in
     Just squares
 
 
-parseFen : String -> Maybe (List String)
+parseFen : String -> Maybe (List Square)
 parseFen fen =
     let
         parts =
@@ -69,3 +51,46 @@ parseFen fen =
             parsePosition (Array.get 0 parts)
     in
     positionPart
+
+
+lettersToSquare : String -> Square
+lettersToSquare l =
+    case l of
+        "P" ->
+            Present White Pawn
+
+        "K" ->
+            Present White King
+
+        "Q" ->
+            Present White Queen
+
+        "N" ->
+            Present White Knight
+
+        "B" ->
+            Present White Bishop
+
+        "R" ->
+            Present White Rook
+
+        "p" ->
+            Present Black Pawn
+
+        "k" ->
+            Present Black King
+
+        "q" ->
+            Present Black Queen
+
+        "n" ->
+            Present Black Knight
+
+        "b" ->
+            Present Black Bishop
+
+        "r" ->
+            Present Black Rook
+
+        _ ->
+            EmptySquare

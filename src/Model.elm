@@ -1,30 +1,44 @@
 module Model exposing (..)
 
 
-update : Msg -> Model -> Model
-update msg model =
-    case msg of
-        Select i ->
-            { model | selected = i }
-
-        LoadFEN m ->
-            { model | position = m }
+type Player
+    = White
+    | Black
 
 
-init : Model
-init =
-    { position = Nothing
-    , selected = Nothing
-    }
+type Piece
+    = Pawn
+    | Queen
+    | King
+    | Knight
+    | Bishop
+    | Rook
+
+
+type Square
+    = Present Player Piece
+    | EmptySquare
 
 
 type Msg
-    = Select (Maybe Int)
-    | LoadFEN (Maybe (List String))
+    = Start (List Square)
+    | Select Int
+    | LoadFEN (List String)
 
 
-
-type alias Model =
-    { position : Maybe (List String)
+type alias GameState =
+    { position : List Square
     , selected : Maybe Int
+    , legalMoves : List Int
     }
+
+
+type Model
+    = Idle
+    | Running GameState
+    | Error
+
+
+init : ( Model, Cmd Msg )
+init =
+    ( Idle, Cmd.none )
